@@ -136,14 +136,29 @@ function getRandomUserAgent() {
     return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 }
 
+// ⬇️⬇️⬇️ 关键的修改都在这个函数里 ⬇️⬇️⬇️
 async function fetchContentWithType(targetUrl, requestHeaders) {
     // 准备请求头
+    // 关键修复点：如果是请求豆瓣的图片，强制设置 Referer 为豆瓣官网
+    let originReferer = '';
+    try {
+        originReferer = new URL(targetUrl).origin;
+    } catch (e) {
+        // 忽略 URL 解析错误
+    }
+    let refererHeader = requestHeaders['referer'] || originReferer;
+    
+    // 强制修复豆瓣的反盗链 418 问题
+    if (targetUrl && targetUrl.includes('doubanio.com')) {
+        refererHeader = 'https://movie.douban.com/';
+    }
+
     const headers = {
         'User-Agent': getRandomUserAgent(),
         'Accept': requestHeaders['accept'] || '*/*', // 传递原始 Accept 头（如果有）
         'Accept-Language': requestHeaders['accept-language'] || 'zh-CN,zh;q=0.9,en;q=0.8',
         // 尝试设置一个合理的 Referer
-        'Referer': requestHeaders['referer'] || new URL(targetUrl).origin,
+        'Referer': refererHeader,
     };
     // 清理空值的头
     Object.keys(headers).forEach(key => headers[key] === undefined || headers[key] === null || headers[key] === '' ? delete headers[key] : {});
@@ -178,6 +193,7 @@ async function fetchContentWithType(targetUrl, requestHeaders) {
         throw new Error(`请求目标 URL 失败 ${targetUrl}: ${error.message}`);
     }
 }
+// ⬆️⬆️⬆️ 关键的修改都在这个函数里 ⬆️⬆️⬆️
 
 function isM3u8Content(content, contentType) {
     if (contentType && (contentType.includes('application/vnd.apple.mpegurl') || contentType.includes('application/x-mpegurl') || contentType.includes('audio/mpegurl'))) {
@@ -490,8 +506,3 @@ export default async function handler(req, res) {
          console.info('--- Vercel 代理请求结束 ---');
     }
 }
-
-// --- [确保所有辅助函数定义都在这里] ---
-// getTargetUrlFromPath, getBaseUrl, resolveUrl, rewriteUrlToProxy, getRandomUserAgent,
-// fetchContentWithType, isM3u8Content, processKeyLine, processMapLine,
-// processMediaPlaylist, processM3u8Content, processMasterPlaylist
