@@ -481,7 +481,6 @@ function renderRecommend(tag, pageLimit, pageStart) {
     });
     // ---------------- 替换结束 ----------------
 }
-}
 
 async function fetchDoubanData(url) {
     // 添加超时控制
