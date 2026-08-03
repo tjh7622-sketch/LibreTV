@@ -422,50 +422,65 @@ function renderRecommend(tag, pageLimit, pageStart) {
 
     container.classList.add("relative");
     container.insertAdjacentHTML('beforeend', loadingOverlayHTML);
+
+    // ---------------- 替换开始 ----------------
+    const TMDB_API_KEY = 'a2ba79240d26ab9740ec017545f8f00e';
+    const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
     
-   // ---------------- 替换开始 ----------------
-const TMDB_API_KEY = 'a2ba79240d26ab9740ec017545f8f00e';
-const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+    let tmdbType = doubanMovieTvCurrentSwitch === 'tv' ? 'tv' : 'movie';
 
-// 1. 根据当前的类型（电影/电视剧）和标签，动态拼接 TMDB 接口
-let tmdbType = doubanMovieTvCurrentSwitch === 'tv' ? 'tv' : 'movie';
-let tmdbCategory = 'popular'; // 默认热门
-if (tag === '最新') {
-    tmdbCategory = tmdbType === 'tv' ? 'on_the_air' : 'now_playing';
-} else if (tag === '高分' || tag === '经典') {
-    tmdbCategory = 'top_rated';
-}
-
-// 拼接请求地址，并兼容分页
-const target = `${TMDB_BASE_URL}/${tmdbType}/${tmdbCategory}?api_key=${TMDB_API_KEY}&language=zh-CN&page=${Math.floor(pageStart / pageLimit) + 1}`;
-
-// 2. 直接请求 TMDB（支持跨域，无需走代理）
-fetch(target)
-.then(res => res.json())
-.then(data => {
-    // 3. 将数据转成 renderDoubanCards 需要的标准格式
-    const newData = {
-        subjects: data.results.map(item => ({
-            cover: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
-            title: item.title || item.name, // 兼容电影和电视剧的名字字段
-            rate: String(item.vote_average),
-            url: `https://www.themoviedb.org/${tmdbType}/${item.id}` // 生成 TMDB 原站链接
-        }))
+    // 国家/地区映射
+    const countryMap = {
+        '华语': 'CN', '欧美': 'US|GB|FR|CA|AU', '韩国': 'KR', '日本': 'JP',
+        '美剧': 'US', '英剧': 'GB', '韩剧': 'KR', '日剧': 'JP', '国产剧': 'CN', '港剧': 'HK'
+    };
+    // 类型 ID 映射 (电影ID / 电视剧ID)
+    const genreMap = {
+        '动作': { movie: 28, tv: 10759 }, '喜剧': { movie: 35, tv: 35 },
+        '爱情': { movie: 10749, tv: 10749 }, '科幻': { movie: 878, tv: 10765 },
+        '悬疑': { movie: 9648, tv: 9648 }, '恐怖': { movie: 27, tv: 27 },
+        '治愈': { movie: 18, tv: 18 }, '纪录片': { movie: 99, tv: 99 },
+        '日综': { tv: 10764 }, '综艺': { tv: 10764 }, '动画': { movie: 16, tv: 16 },
+        '日本动画': { movie: 16, tv: 16 } 
     };
 
-    // 4. 调用原有的渲染函数，并传参
-    renderDoubanCards(newData, container);
-})
-.catch(error => {
-    console.error("TMDB 加载失败: ", error);
-    container.innerHTML = `
-        <div class="col-span-full text-center py-8">
-            <div class="text-red-400">❌ 获取推荐数据失败，请检查网络或密钥</div>
-            <div class="text-gray-500 text-sm mt-2">提示：TMDB 密钥是否有效？</div>
-        </div>
-    `;
-});
-// ---------------- 替换结束 ----------------
+    // 构建排序、地区、类型的参数
+    let sortParam = 'popularity.desc';
+    if (tag === '最新') sortParam = 'release_date.desc';
+    else if (tag === '高分' || tag === '经典') sortParam = 'vote_average.desc';
+
+    let countryParam = countryMap[tag] ? `&with_origin_country=${countryMap[tag]}` : '';
+    let genreId = genreMap[tag] ? genreMap[tag][tmdbType] : '';
+    let genreParam = genreId ? `&with_genres=${genreId}` : '';
+
+    // 调用 TMDB 的 Discover 发现接口
+    const target = `${TMDB_BASE_URL}/discover/${tmdbType}?api_key=${TMDB_API_KEY}&language=zh-CN&page=${Math.floor(pageStart / pageLimit) + 1}&sort_by=${sortParam}${countryParam}${genreParam}`;
+
+    fetch(target)
+    .then(res => res.json())
+    .then(data => {
+        // 转换数据格式
+        const newData = {
+            subjects: data.results.map(item => ({
+                cover: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
+                title: item.title || item.name, 
+                rate: String(item.vote_average),
+                url: `https://www.themoviedb.org/${tmdbType}/${item.id}`
+            }))
+        };
+        renderDoubanCards(newData, container);
+    })
+    .catch(error => {
+        console.error("TMDB 加载失败: ", error);
+        container.innerHTML = `
+            <div class="col-span-full text-center py-8">
+                <div class="text-red-400">❌ 获取推荐数据失败，请检查网络或密钥</div>
+                <div class="text-gray-500 text-sm mt-2">提示：TMDB 密钥是否有效？</div>
+            </div>
+        `;
+    });
+    // ---------------- 替换结束 ----------------
+}
 }
 
 async function fetchDoubanData(url) {
