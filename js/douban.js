@@ -448,7 +448,7 @@ fetch(target)
         subjects: data.results.map(item => ({
             cover: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
             title: item.title || item.name, // 兼容电影和电视剧的名字字段
-            rate: item.vote_average,
+            rate: String(item.vote_average),
             url: `https://www.themoviedb.org/${tmdbType}/${item.id}` // 生成 TMDB 原站链接
         }))
     };
