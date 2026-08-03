@@ -79,7 +79,33 @@ const API_SITES = {
         api: 'https://cj.rycjapi.com/api.php/provide/vod',
         name: '如意资源',
         adult: false
-    }
+    },
+            // 以下为新增的内置采集源
+        'xiaopingguo': {
+            api: 'https://tvbox.xiaopingguo.top/api.json',
+            name: '小苹果影视',
+            adult: false
+        },
+        'oge': {
+            api: 'http://og0.xyz/og.json',
+            name: '欧歌影视',
+            adult: false
+        },
+        'hunyuan': {
+            api: 'http://tvbox.xn--4gq094i.xyz/api.json',
+            name: '混元影视',
+            adult: false
+        },
+        'duoduo': {
+            api: 'http://tvbox.ddsou.top/api.json',
+            name: '多多影视',
+            adult: false
+        },
+        'junyu': {
+            api: 'http://tvbox.jyzyj.com/api.json',
+            name: '俊于影视',
+            adult: false
+        }
     // 👆 新添加的内置采集源
     //ARCHIVE https://telegra.ph/APIs-08-12
 };
