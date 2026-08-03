@@ -462,7 +462,7 @@ function renderRecommend(tag, pageLimit, pageStart) {
         // 转换数据格式
         const newData = {
             subjects: data.results.map(item => ({
-                cover: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
+                cover: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : 'https://images.weserv.nl/?url=https://img9.doubanio.com/view/photo/s_ratio_poster/public/p2561716440.jpg',
                 title: item.title || item.name, 
                 rate: String(item.vote_average),
                 url: `https://www.themoviedb.org/${tmdbType}/${item.id}`
