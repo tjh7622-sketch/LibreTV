@@ -423,22 +423,32 @@ function renderRecommend(tag, pageLimit, pageStart) {
     container.classList.add("relative");
     container.insertAdjacentHTML('beforeend', loadingOverlayHTML);
     
-    const target = `https://movie.douban.com/j/search_subjects?type=${doubanMovieTvCurrentSwitch}&tag=${tag}&sort=recommend&page_limit=${pageLimit}&page_start=${pageStart}`;
-    
-    // 使用通用请求函数
-    fetchDoubanData(target)
-        .then(data => {
-            renderDoubanCards(data, container);
-        })
-        .catch(error => {
-            console.error("获取豆瓣数据失败：", error);
-            container.innerHTML = `
-                <div class="col-span-full text-center py-8">
-                    <div class="text-red-400">❌ 获取豆瓣数据失败，请稍后重试</div>
-                    <div class="text-gray-500 text-sm mt-2">提示：使用VPN可能有助于解决此问题</div>
-                </div>
-            `;
-        });
+    // --- 替换为 TMDB 接口 ---
+const TMDB_API_KEY = 'a2ba79240d26ab9740ec017545f8f00e';
+const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+
+// 请求 TMDB 热门电影
+fetch(`${TMDB_BASE_URL}/movie/popular?api_key=${TMDB_API_KEY}&language=zh-CN&page=1`)
+.then(res => res.json())
+.then(data => {
+    // 转换数据结构，适配前端的渲染要求
+    const newData = data.results.map(item => ({
+        title: item.title,
+        image: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
+        rating: item.vote_average,
+        year: item.release_date ? item.release_date.split('-')[0] : '',
+        id: item.id,
+        type: 'movie'
+    }));
+
+    // 【非常关键】调用原有的渲染函数
+    // 您删掉的旧代码里，拿到数据后一定调用了类似 renderMovies(data) 的方法
+    // 请把下面的 renderMovies 换成您旧代码里真正调用的函数名（非常可能是 renderMovies 或 renderList）
+    renderMovies(newData); 
+})
+.catch(err => {
+    console.error('TMDB 加载失败', err);
+});
 }
 
 async function fetchDoubanData(url) {
