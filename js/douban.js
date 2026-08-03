@@ -423,32 +423,49 @@ function renderRecommend(tag, pageLimit, pageStart) {
     container.classList.add("relative");
     container.insertAdjacentHTML('beforeend', loadingOverlayHTML);
     
-    // --- 替换为 TMDB 接口 ---
+   // ---------------- 替换开始 ----------------
 const TMDB_API_KEY = 'a2ba79240d26ab9740ec017545f8f00e';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-// 请求 TMDB 热门电影
-fetch(`${TMDB_BASE_URL}/movie/popular?api_key=${TMDB_API_KEY}&language=zh-CN&page=1`)
+// 1. 根据当前的类型（电影/电视剧）和标签，动态拼接 TMDB 接口
+let tmdbType = doubanMovieTvCurrentSwitch === 'tv' ? 'tv' : 'movie';
+let tmdbCategory = 'popular'; // 默认热门
+if (tag === '最新') {
+    tmdbCategory = tmdbType === 'tv' ? 'on_the_air' : 'now_playing';
+} else if (tag === '高分' || tag === '经典') {
+    tmdbCategory = 'top_rated';
+}
+
+// 拼接请求地址，并兼容分页
+const target = `${TMDB_BASE_URL}/${tmdbType}/${tmdbCategory}?api_key=${TMDB_API_KEY}&language=zh-CN&page=${Math.floor(pageStart / pageLimit) + 1}`;
+
+// 2. 直接请求 TMDB（支持跨域，无需走代理）
+fetch(target)
 .then(res => res.json())
 .then(data => {
-    // 转换数据结构，适配前端的渲染要求
-    const newData = data.results.map(item => ({
-        title: item.title,
-        image: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
-        rating: item.vote_average,
-        year: item.release_date ? item.release_date.split('-')[0] : '',
-        id: item.id,
-        type: 'movie'
-    }));
+    // 3. 将数据转成 renderDoubanCards 需要的标准格式
+    const newData = {
+        subjects: data.results.map(item => ({
+            cover: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
+            title: item.title || item.name, // 兼容电影和电视剧的名字字段
+            rate: item.vote_average,
+            url: `https://www.themoviedb.org/${tmdbType}/${item.id}` // 生成 TMDB 原站链接
+        }))
+    };
 
-    // 【非常关键】调用原有的渲染函数
-    // 您删掉的旧代码里，拿到数据后一定调用了类似 renderMovies(data) 的方法
-    // 请把下面的 renderMovies 换成您旧代码里真正调用的函数名（非常可能是 renderMovies 或 renderList）
-    renderMovies(newData); 
+    // 4. 调用原有的渲染函数，并传参
+    renderDoubanCards(newData, container);
 })
-.catch(err => {
-    console.error('TMDB 加载失败', err);
+.catch(error => {
+    console.error("TMDB 加载失败: ", error);
+    container.innerHTML = `
+        <div class="col-span-full text-center py-8">
+            <div class="text-red-400">❌ 获取推荐数据失败，请检查网络或密钥</div>
+            <div class="text-gray-500 text-sm mt-2">提示：TMDB 密钥是否有效？</div>
+        </div>
+    `;
 });
+// ---------------- 替换结束 ----------------
 }
 
 async function fetchDoubanData(url) {
