@@ -456,7 +456,7 @@ function renderRecommend(tag, pageLimit, pageStart) {
     // 调用 TMDB 的 Discover 发现接口
     const target = `${TMDB_BASE_URL}/discover/${tmdbType}?api_key=${TMDB_API_KEY}&language=zh-CN&page=${Math.floor(pageStart / pageLimit) + 1}&sort_by=${sortParam}${countryParam}${genreParam}`;
 
-    fetch(target)
+    fetch('/api/tmdb?url=' + encodeURIComponent(target))
     .then(res => res.json())
     .then(data => {
         // 转换数据格式
