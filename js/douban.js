@@ -456,9 +456,21 @@ function renderRecommend(tag, pageLimit, pageStart) {
     // 调用 TMDB 的 Discover 发现接口
     const target = `${TMDB_BASE_URL}/discover/${tmdbType}?api_key=${TMDB_API_KEY}&language=zh-CN&page=${Math.floor(pageStart / pageLimit) + 1}&sort_by=${sortParam}${countryParam}${genreParam}`;
 
-    fetch('/api/tmdb?url=' + encodeURIComponent(target))
-    .then(res => res.json())
+    // 调用避免冲突的代理路径
+    fetch('/tmdb-proxy?url=' + encodeURIComponent(target))
+    .then(res => {
+        // 判断代理层是否成功返回了数据
+        if (!res.ok) {
+            throw new Error(`网络请求错误 (${res.status})`);
+        }
+        return res.json();
+    })
     .then(data => {
+        // 防止 TMDB 返回空数据导致前端崩溃
+        if (!data || !data.results) {
+            throw new Error('TMDB 返回了空数据');
+        }
+
         // 转换数据格式
         const newData = {
             subjects: data.results.map(item => ({
@@ -479,7 +491,6 @@ function renderRecommend(tag, pageLimit, pageStart) {
             </div>
         `;
     });
-    // ---------------- 替换结束 ----------------
 }
 
 async function fetchDoubanData(url) {
